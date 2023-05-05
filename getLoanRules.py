@@ -47,7 +47,7 @@ driver = webdriver.Chrome(home_directory_chromedriver_path)
 driver.get(secrets_local.alma_base_url)
 time.sleep(5)
 element = login(driver, secrets_local.username, secrets_local.password)
-time.sleep(20)
+time.sleep(8)
 
 full_units = navigate_to_fulfillment_units(driver, secrets_local.alma_base_url)
 
