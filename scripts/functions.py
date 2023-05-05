@@ -120,11 +120,14 @@ def get_enabled_value(driver, y):
                                                                   #pageBeanrules        0     activeImage
 
 
-    if (re.search(r'active', enabled_or_disabled_attribute)):
+    if (re.search(r'\sactive', enabled_or_disabled_attribute)):
         enabled_value = "Active"
     elif(re.search(r'inactive', enabled_or_disabled_attribute)):
         enabled_value = "Inactive"
 
+    # if y == 6:
+    #     print("enabled value: " + enabled_value)
+    #     sys.exit()
     return enabled_value
 
 def navigate_to_loan_rule(driver, y):
