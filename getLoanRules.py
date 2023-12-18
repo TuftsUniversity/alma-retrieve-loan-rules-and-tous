@@ -70,10 +70,10 @@ fulfillment_unit_df = pd.read_html(html)[0]
 print(fulfillment_unit_df)
 
 #iterate through fulfillment full_units
-x = 2
+x = 0
 
 print("Fulfillment unit count: " + str(full_unit_count))
-while x < 3:#full_unit_count:
+while x < full_unit_count:
 
 
 
