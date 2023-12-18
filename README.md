@@ -26,7 +26,9 @@ Author: Henry Steele, Library Technology Services, Tufts University, 2023
   - let script run through all the loan rules
   - new in 2023
 	- the visualize.py script organizes the loan rule table you specify from the output above and makes a version where each TOU policy value is plotted in a pivot table in a cross section of the user and location parameters, against item poliy parameters.  The number of the loan rule is next to the value so you can see in what order it's invoked in the cascading rule evaluation
+    - this script uses the output of the previous script in the "Output" folder as input
 
 
 *Output:*
 - rules for each fulfillment unit with associated parameters, TOUs, and policies will be in separate workbooks by fulfillment unit name in the Output folder
+- once you run the visualized.py script, results will be in "Output Visualized"  
