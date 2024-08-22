@@ -26,15 +26,12 @@ import math
 
 def login(driver, username, password):
 
-
-
-
-    element = driver.find_element(By.ID, 'username')
+    element = driver.find_element(By.ID, "username")
 
     time.sleep(2)
     element.send_keys(username)
 
-    element = driver.find_element(By.ID, 'password')
+    element = driver.find_element(By.ID, "password")
 
     element.send_keys(password)
 
@@ -43,56 +40,88 @@ def login(driver, username, password):
     return element
 
 
-
 def navigate_to_fulfillment_units(driver, url):
     time.sleep(2)
 
-    driver.get(url + "/ng/page;u=%2Fful%2Faction%2FpageAction.do%3FxmlFileName%3DfulfillmentUnits.fulfillment_units_list.xml&almaConfiguration%3Dtrue&pageViewMode%3DEdit&operation%3DLOAD&pageBean.orgUnitCode%3D3851&pageBean.currentUrl%3DxmlFileName%253DfulfillmentUnits.fulfillment_units_list.xml%2526almaConfiguration%253Dtrue%2526pageViewMode%253DEdit%2526operation%253DLOAD%2526pageBean.orgUnitCode%253D3851%2526resetPaginationContext%253Dtrue%2526showBackButton%253Dfalse&pageBean.navigationBackUrl%3D..%252Faction%252Fhome.do&resetPaginationContext%3Dtrue&showBackButton%3Dfalse&pageBean.ngBack%3Dtrue;ng=true")
+    driver.get(
+        url
+        + "/ng/page;u=%2Fful%2Faction%2FpageAction.do%3FxmlFileName%3DfulfillmentUnits.fulfillment_units_list.xml&almaConfiguration%3Dtrue&pageViewMode%3DEdit&operation%3DLOAD&pageBean.orgUnitCode%3D3851&pageBean.currentUrl%3DxmlFileName%253DfulfillmentUnits.fulfillment_units_list.xml%2526almaConfiguration%253Dtrue%2526pageViewMode%253DEdit%2526operation%253DLOAD%2526pageBean.orgUnitCode%253D3851%2526resetPaginationContext%253Dtrue%2526showBackButton%253Dfalse&pageBean.navigationBackUrl%3D..%252Faction%252Fhome.do&resetPaginationContext%3Dtrue&showBackButton%3Dfalse&pageBean.ngBack%3Dtrue;ng=true"
+    )
+
 
 def get_fulfillment_unit_count(driver):
     time.sleep(3)
     count = len(driver.find_elements(By.XPATH, "//table/tbody/tr"))
     return count
 
+
 def navigate_to_rules_tab_get_lists(driver, full_unit_number):
     wait = WebDriverWait(driver, 20)
-    element = wait.until(ec.visibility_of_element_located((By.XPATH, '//*[contains(@id, "input_fulfillmentUnits_' + str(full_unit_number) + '")]')))
+    element = wait.until(
+        ec.visibility_of_element_located(
+            (
+                By.XPATH,
+                '//*[contains(@id, "input_fulfillmentUnits_'
+                + str(full_unit_number)
+                + '")]',
+            )
+        )
+    )
     element.click()
 
-    #driver.find_element(By.ID, 'input_fulfillmentUnits_' + str(full_unit_number)).click()
+    # driver.find_element(By.ID, 'input_fulfillmentUnits_' + str(full_unit_number)).click()
     wait = WebDriverWait(driver, 20)
-    element = wait.until(ec.visibility_of_element_located((By.XPATH, '//*[contains(@id, "fulfillmentUnits_' +  str(full_unit_number) + '_c.ui.table.btn.edit")]/a')))
+    element = wait.until(
+        ec.visibility_of_element_located(
+            (
+                By.XPATH,
+                '//*[contains(@id, "fulfillmentUnits_'
+                + str(full_unit_number)
+                + '_c.ui.table.btn.edit")]/a',
+            )
+        )
+    )
     element.click()
 
-
-
     wait = WebDriverWait(driver, 20)
-    element = wait.until(ec.visibility_of_element_located((By.XPATH, "//*[@id='fulfillmentunit_editfulfillmentUnitLocations_span']/a")))
+    element = wait.until(
+        ec.visibility_of_element_located(
+            (By.XPATH, "//*[@id='fulfillmentunit_editfulfillmentUnitLocations_span']/a")
+        )
+    )
     element.click()
 
     locations_html = driver.page_source
     wait = WebDriverWait(driver, 20)
-    content = wait.until(ec.visibility_of_element_located((By.ID, "fulfillmentUnitLocationsList"))).get_attribute("outerHTML")
+    content = wait.until(
+        ec.visibility_of_element_located((By.ID, "fulfillmentUnitLocationsList"))
+    ).get_attribute("outerHTML")
     locations = pd.read_html(content)
     locations_df = locations[0]
 
     if len(locations_df) >= 20:
         wait = WebDriverWait(driver, 20)
-        element = wait.until(ec.visibility_of_element_located((By.ID, "navigaionSizeBarSize2")))
+        element = wait.until(
+            ec.visibility_of_element_located((By.ID, "navigaionSizeBarSize2"))
+        )
         element.click()
 
     locations_html = driver.page_source
-    content = driver.find_element(By.XPATH, '//*[contains(@id, "fulfillmentUnitLocationsList")]').get_attribute("outerHTML")
+    content = driver.find_element(
+        By.XPATH, '//*[contains(@id, "fulfillmentUnitLocationsList")]'
+    ).get_attribute("outerHTML")
     locations = pd.read_html(content)
     locations_df = locations[0]
 
-    locations_list = locations_df['sorted ascending'].tolist()
-
+    locations_list = locations_df["sorted ascending"].tolist()
 
     wait = WebDriverWait(driver, 20)
-    element = wait.until(ec.visibility_of_element_located((By.XPATH, '//*[@id="fulfillmentunit_editfulfillmentUnitRules_span"]/a')))
+    element = wait.until(
+        ec.visibility_of_element_located(
+            (By.XPATH, '//*[@id="fulfillmentunit_editfulfillmentUnitRules_span"]/a')
+        )
+    )
     element.click()
-
 
     time.sleep(2)
     html = driver.page_source
@@ -105,25 +134,27 @@ def navigate_to_rules_tab_get_lists(driver, full_unit_number):
 
     return [rules_df, locations_list]
 
+
 ###################################
 ####    This gets the value of the
 ####    enabled slider switch to
 ####    see if the rule is active
 def get_enabled_value(driver, y):
 
-
     wait = WebDriverWait(driver, 20)
-    element_enable = wait.until(ec.visibility_of_element_located((By.XPATH, "//*[contains(@id, 'ROW_" + str(y) + "_COL_activeImage')]/div")))
+    element_enable = wait.until(
+        ec.visibility_of_element_located(
+            (By.XPATH, "//*[contains(@id, 'ROW_" + str(y) + "_COL_activeImage')]/div")
+        )
+    )
 
-    enabled_or_disabled_attribute = element_enable.get_attribute('aria-label')
+    enabled_or_disabled_attribute = element_enable.get_attribute("aria-label")
 
+    # pageBeanrules        0     activeImage
 
-                                                                  #pageBeanrules        0     activeImage
-
-
-    if (re.search(r'\sactive', enabled_or_disabled_attribute)):
+    if re.search(r"\sactive", enabled_or_disabled_attribute):
         enabled_value = "Active"
-    elif(re.search(r'inactive', enabled_or_disabled_attribute)):
+    elif re.search(r"inactive", enabled_or_disabled_attribute):
         enabled_value = "Inactive"
 
     # if y == 6:
@@ -131,17 +162,27 @@ def get_enabled_value(driver, y):
     #     sys.exit()
     return enabled_value
 
+
 def navigate_to_loan_rule(driver, y):
 
     wait = WebDriverWait(driver, 20)
-    button = wait.until(ec.visibility_of_element_located((By.XPATH, '//*[@id="input_rules_' + str(y) + '"]')))
+    button = wait.until(
+        ec.visibility_of_element_located(
+            (By.XPATH, '//*[@id="input_rules_' + str(y) + '"]')
+        )
+    )
 
     ActionChains(driver).move_to_element(button).click(button).perform()
 
-
-
     wait = WebDriverWait(driver, 20)
-    element = wait.until(ec.visibility_of_element_located((By.XPATH, '//*[@id="ROW_ACTION_rules_'  + str(y) + '_c.ui.table.btn.edit"]/a')))
+    element = wait.until(
+        ec.visibility_of_element_located(
+            (
+                By.XPATH,
+                '//*[@id="ROW_ACTION_rules_' + str(y) + '_c.ui.table.btn.edit"]/a',
+            )
+        )
+    )
     element.click()
 
     # wait = WebDriverWait(driver, 20)
@@ -149,6 +190,8 @@ def navigate_to_loan_rule(driver, y):
     #     element = wait.until(ec.visibility_of_element_located((By.ID, "TABLE_DATA_rules")))
     # except:
     #     print("already there")
+
+
 ###################################
 ####    This function retrieves the parameter
 ####    table from the loan rule and compresses the
@@ -157,7 +200,6 @@ def navigate_to_loan_rule(driver, y):
 ####    the Parameters field of the row assoicated with this loan rule
 def get_parameter_list(driver):
 
-
     time.sleep(1)
     html = driver.page_source
 
@@ -165,12 +207,14 @@ def get_parameter_list(driver):
 
         parameter_df = pd.read_html(html)[0]
 
-
-
-
         parameter_list = []
         for z in range(0, len(parameter_df)):
-            parameter_list.append(parameter_df.loc[z, 'Name'] + " " + parameter_df.loc[z,'Operator'] + parameter_df.loc[z, 'Value'])
+            parameter_list.append(
+                parameter_df.loc[z, "Name"]
+                + " "
+                + parameter_df.loc[z, "Operator"]
+                + parameter_df.loc[z, "Value"]
+            )
 
         parameter_string = "; ".join(parameter_list)
 
@@ -178,15 +222,22 @@ def get_parameter_list(driver):
         parameter_string = ""
     return parameter_string
 
+
 def navigate_to_tou(driver):
     wait = WebDriverWait(driver, 20)
-    element = wait.until(ec.visibility_of_element_located((By.XPATH, '//*[@id="uiconfiguration_rule_detailsview_tou"]')))
+    element = wait.until(
+        ec.visibility_of_element_located(
+            (By.XPATH, '//*[@id="uiconfiguration_rule_detailsview_tou"]')
+        )
+    )
     element.click()
     # wait = WebDriverWait(driver, 20)
     # try:
     #     element = wait.until(ec.visibility_of_element_located((By.ID, "TABLE_DATA_ruleParamsList")))
     # except:
     #     print("already there")
+
+
 ###################################
 ####    This ingests the TOU table,
 ####    sets the Policy Name as the dataframe index
@@ -197,10 +248,9 @@ def get_tou_as_series(driver):
     html = driver.page_source
     tou_df = pd.read_html(html)[0]
 
-
     time.sleep(1)
-    tou_df = tou_df[['Policy Name', 'Policy Type']]
-    tou_df = tou_df.set_index('Policy Type')
+    tou_df = tou_df[["Policy Name", "Policy Type"]]
+    tou_df = tou_df.set_index("Policy Type")
     tou_series = tou_df.squeeze()
 
     return tou_series
