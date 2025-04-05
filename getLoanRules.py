@@ -22,6 +22,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 import csv
 import sys
 import time
@@ -46,9 +47,10 @@ if " " in secrets_local.alma_base_url or " " in secrets_local.username or " " in
 oDir = "./Output"
 if not os.path.isdir(oDir) or not os.path.exists(oDir):
 	os.makedirs(oDir)
-#for windows
-home_directory_chromedriver_path = os.path.expanduser('~') + "/chromedriver.exe"
-driver = webdriver.Chrome(ChromeDriverManager().install())
+# Use Service class with ChromeDriverManager
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service)
+
 #driver = webdriver.Chrome()#home_directory_chromedriver_path)
 #sys.exit()
 
