@@ -1,0 +1,24 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "C:\\Users\\hsteel01\\Box\\01 - P Drive 2\\Alma\\Circulation - Fulfillment\\Loan Rules\\Loan Rules - for Sharing\\getLoanRules.py",
+            "console": "externalTerminal",
+            "cwd": "C:\\Users\\hsteel01\\Box\\01 - P Drive 2\\Alma\\Circulation - Fulfillment\\Loan Rules\\Loan Rules - for Sharing",
+            "env": {
+                "PYTHONPATH": "C:\\Users\\hsteel01\\AppData\\Local\\Programs\\Python\\Python38-32"
+            }
+        }
+    ]
+}
