@@ -9,7 +9,6 @@ from selenium.webdriver.support import expected_conditions as ec
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 import threading
-from scripts_loan_rules.functions import safe_find_element, safe_find_element_text, click_element_with_retry, send_keys_with_retry
 from selenium.webdriver.chrome.service import Service
 import csv
 import sys
@@ -67,24 +66,45 @@ def init_driver():
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
-def worker_thread(thread_id):
+def worker_thread(thread_id, threads):
     driver = init_driver()
     # buffer = []
     # current_fulfillment_unit = None
     driver = init_driver()
     driver.get(secrets_local.alma_base_url)
-    time.sleep(5)
-    login(driver, secrets_local.username, secrets_local.password)
-    WebDriverWait(driver, 20).until(ec.url_changes(secrets_local.alma_base_url))
-    fulfillment_unit_df = navigate_to_fulfillment_units(driver, secrets_local.alma_base_url)
+    time.sleep(10)
+    element = login(driver, secrets_local.username, secrets_local.password)
+    time.sleep(20)
+    try:
+        modal = driver.find_element(By.XPATH, "//div[@id='onetrust-close-btn-container']//button")
+        print("GDPR modal detected. Attempting to close it.")
+        modal = WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//div[@id='onetrust-close-btn-container']//button"))
+        )
+        modal.click()
+        print("GDPR modal closed.")
+    except TimeoutException:
+        print("No GDPR modal detected.")
+    except:
+        print("No GDPR modal")
+
     
+   
+    fulfillment_unit_df = navigate_to_fulfillment_units(driver, secrets_local.alma_base_url)
+    x = 0
+
+    fulfillment_unit_length = len(fulfillment_unit_df)
+
+    print(fulfillment_unit_length)
+
+    print(type(fulfillment_unit_length))    
     while True:
         with threading.Lock():
 
 
-            if len(fulfillment_units_processed) >= len(fulfillment_unit_df):
+            if x + 1 >= len(fulfillment_unit_df):
                 break
-            x = len(fulfillment_units_processed)
+            
             fulfillment_unit = fulfillment_unit_df.loc[x, "sortable"]
             
 
@@ -153,14 +173,14 @@ def worker_thread(thread_id):
 
                     # --- Navigate to Loan Rule Details ---
                     navigate_to_loan_rule(driver, y)
-                    time.sleep(2)  # Short wait to let the page load (optional)
+                    # time.sleep(2)  # Short wait to let the page load (optional)
 
                     # --- Get Parameter String ---
                     parameter_string = get_parameter_list(driver)
                     rule_df['Parameter'] = parameter_string
                     # --- Navigate to Terms of Use ---
                     navigate_to_tou(driver)
-                    time.sleep(2)
+                    # time.sleep(2)
 
                     # --- Parse TOU into DataFrame ---
                     tou_series = get_tou_as_series(driver)
@@ -170,10 +190,10 @@ def worker_thread(thread_id):
                     rule_df = rule_df.drop_duplicates(subset=["Rule Name"])
 
                     # --- Append to master ---
-                    if y == 0:
-                        ruless_df = rule_df.copy()
-                    else:
-                        ruless_df = pd.concat([ruless_df, rule_df], ignore_index=True)
+                    # if y == 0:
+                    #     ruless_df = rule_df.copy()
+                    # else:
+                    #     ruless_df = pd.concat([ruless_df, rule_df], ignore_index=True)
 
                     # --- Return to rule list view ---
                     try:
@@ -183,12 +203,12 @@ def worker_thread(thread_id):
                     except:
                         print("No back button needed")
 
-                    y += 1
+                
 
                     rules_processed.append((fulfillment_unit, y))
                     
                     #if len(buffer) >= BUFFER_WRITE_INTERVAL:
-                    write_to_excel(ruless_df, thread_id, OUTPUT_DIR)
+                    write_buffer_to_excel(rule_df, thread_id, OUTPUT_DIR)
                    
 
                 except Exception as e:
@@ -203,22 +223,16 @@ def worker_thread(thread_id):
         except Exception as e:
             print(f"Thread-{thread_id} error processing fulfillment unit {fulfillment_unit}: {e}")
 
-
+        x += 1
 
 def main():
     # Initialize driver and navigate to fulfillment units
-    driver = init_driver()
-    driver.get(secrets_local.alma_base_url)
-    time.sleep(5)
-    login(driver, secrets_local.username, secrets_local.password)
-    WebDriverWait(driver, 20).until(ec.url_changes(secrets_local.alma_base_url))
-    fulfillment_unit_df = navigate_to_fulfillment_units(driver, secrets_local.alma_base_url)
-    
+
 
     # Start threads
     threads = []
     for i in range(N):
-        t = threading.Thread(target=worker_thread, args=(i))
+        t = threading.Thread(target=worker_thread, args=(i, threads))
         t.start()
         threads.append(t)
 

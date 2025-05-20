@@ -144,6 +144,13 @@ def navigate_to_fulfillment_units(driver, url):
         + "/ng/page;u=%2Fful%2Faction%2FpageAction.do%3FxmlFileName%3DfulfillmentUnits.fulfillment_units_list.xml&almaConfiguration%3Dtrue&pageViewMode%3DEdit&operation%3DLOAD&pageBean.orgUnitCode%3D3851&pageBean.currentUrl%3DxmlFileName%253DfulfillmentUnits.fulfillment_units_list.xml%2526almaConfiguration%253Dtrue%2526pageViewMode%253DEdit%2526operation%253DLOAD%2526pageBean.orgUnitCode%253D3851%2526resetPaginationContext%253Dtrue%2526showBackButton%253Dfalse&pageBean.navigationBackUrl%3D..%252Faction%252Fhome.do&resetPaginationContext%3Dtrue&showBackButton%3Dfalse&pageBean.ngBack%3Dtrue;ng=true"
     )
 
+    time.sleep(6)
+
+    html = driver.page_source
+    fulfillment_unit_df = pd.read_html(html)[0]
+
+    return fulfillment_unit_df
+
 
 def get_fulfillment_unit_count(driver):
     time.sleep(3)
@@ -158,11 +165,17 @@ def navigate_to_rules_tab_get_lists(driver, full_unit_number):
 
     content = safe_find_element(driver, By.ID, "fulfillmentUnitLocationsList").get_attribute("outerHTML")
     locations_df = pd.read_html(content)[0]
-
-    if len(locations_df) >= 20:
-        click_element_with_retry(driver, By.ID, "navigaionSizeBarSize2")
-        content = safe_find_element(driver, By.XPATH, '//*[contains(@id, "fulfillmentUnitLocationsList")]').get_attribute("outerHTML")
-        locations_df = pd.read_html(content)[0]
+    print("initial locations")
+    with pd.option_context('display.max_columns', None):
+        print(locations_df)
+    # if len(locations_df) >= 20:
+    #     click_element_with_retry(driver, By.ID, "navigaionSizeBarSize2")
+    #     content = safe_find_element(driver, By.XPATH, '//*[contains(@id, "fulfillmentUnitLocationsList")]').get_attribute("outerHTML")
+    #     locations_df = pd.read_html(content)[0]
+    #     print("got into locations greater than 20")
+    #     print("greater than 20 locations list")
+    #     with pd.option_context('display.max_columns', None):
+    #         print(locations_df)
 
     locations_list = locations_df["sorted ascending"].tolist()
 
@@ -235,8 +248,8 @@ def get_tou_as_series(driver):
     
 
 def write_buffer_to_excel(buffer, thread_id, output_dir):
-    if not buffer:
-        return
+    # if not buffer:
+    #     return
 
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, f"output_thread_{thread_id}.xlsx")
@@ -255,7 +268,7 @@ def write_buffer_to_excel(buffer, thread_id, output_dir):
             df.to_excel(file_path, index=False)
 
         print(f"✅ Thread-{thread_id} wrote {len(df)} rows to {file_path}")
-        buffer.clear()
+        # buffer.clear()
     except Exception as e:
         print(f"❌ Error in write_buffer_to_excel for Thread-{thread_id}: {e}")
 
