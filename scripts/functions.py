@@ -136,21 +136,24 @@ def login(driver, username, password):
     return element
 
 
-def navigate_to_fulfillment_units(driver, url):
+def navigate_to_fulfillment_units(driver, url, retries=3, wait_time=10):
     time.sleep(2)
+    for attempt in range(retries):
+        try:
 
-    driver.get(
-        url
-        + "/ng/page;u=%2Fful%2Faction%2FpageAction.do%3FxmlFileName%3DfulfillmentUnits.fulfillment_units_list.xml&almaConfiguration%3Dtrue&pageViewMode%3DEdit&operation%3DLOAD&pageBean.orgUnitCode%3D3851&pageBean.currentUrl%3DxmlFileName%253DfulfillmentUnits.fulfillment_units_list.xml%2526almaConfiguration%253Dtrue%2526pageViewMode%253DEdit%2526operation%253DLOAD%2526pageBean.orgUnitCode%253D3851%2526resetPaginationContext%253Dtrue%2526showBackButton%253Dfalse&pageBean.navigationBackUrl%3D..%252Faction%252Fhome.do&resetPaginationContext%3Dtrue&showBackButton%3Dfalse&pageBean.ngBack%3Dtrue;ng=true"
-    )
+            driver.get(
+                url
+                + "/ng/page;u=%2Fful%2Faction%2FpageAction.do%3FxmlFileName%3DfulfillmentUnits.fulfillment_units_list.xml&almaConfiguration%3Dtrue&pageViewMode%3DEdit&operation%3DLOAD&pageBean.orgUnitCode%3D3851&pageBean.currentUrl%3DxmlFileName%253DfulfillmentUnits.fulfillment_units_list.xml%2526almaConfiguration%253Dtrue%2526pageViewMode%253DEdit%2526operation%253DLOAD%2526pageBean.orgUnitCode%253D3851%2526resetPaginationContext%253Dtrue%2526showBackButton%253Dfalse&pageBean.navigationBackUrl%3D..%252Faction%252Fhome.do&resetPaginationContext%3Dtrue&showBackButton%3Dfalse&pageBean.ngBack%3Dtrue;ng=true"
+            )
 
-    time.sleep(6)
+            time.sleep(6)
 
-    html = driver.page_source
-    fulfillment_unit_df = pd.read_html(html)[0]
+            html = driver.page_source
+            fulfillment_unit_df = pd.read_html(html)[0]
 
-    return fulfillment_unit_df
-
+            return fulfillment_unit_df
+        except:
+            continue
 
 def get_fulfillment_unit_count(driver):
     time.sleep(3)
@@ -221,13 +224,21 @@ def get_parameter_list(driver):
     time.sleep(1)
     try:
         parameter_df = pd.read_html(driver.page_source)[0]
+        parameter_df = pd.read_html(driver.page_source)[0]
+
+    
         parameter_list = [
-            f"{row['Name']} {row['Operator']} {row['Value']}"
+            {row['Name'].strip(): [row['Operator'], row['Value']]}
             for _, row in parameter_df.iterrows()
         ]
-        return "; ".join(parameter_list)
+
+
+
+        return parameter_list
+
+    
     except:
-        return ""
+        return []
 
 def navigate_to_tou(driver):
     click_element_with_retry(driver, By.XPATH, '//*[@id="uiconfiguration_rule_detailsview_tou"]')
@@ -276,6 +287,7 @@ def write_buffer_to_excel(buffer, thread_id, output_dir):
 import os
 import glob
 import pandas as pd
+import sys
 
 def merge_excel_files(output_dir, output_file):
     """Merge all Excel files in the output directory into a single file."""
@@ -292,6 +304,10 @@ def merge_excel_files(output_dir, output_file):
         try:
             print(f"✅ Including: {file_path}")
             df = pd.read_excel(file_path, engine="openpyxl")
+            print(df)
+
+           
+            #df = df.sort_values(by=['Fulfillment Unit Number', 'Rule Number'])
             all_data.append(df)
         except Exception as e:
             print(f"⚠️ Failed to read {file_path}: {e}")
