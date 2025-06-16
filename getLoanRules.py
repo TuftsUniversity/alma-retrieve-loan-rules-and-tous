@@ -20,10 +20,10 @@ import re
 import pandas as pd
 import numpy as np
 
-
+sys.path.append(os.path.relpath('config/'))
 import secrets_local
 
-sys.path.append("scripts/")
+sys.path.append(os.path.relpath('scripts/'))
 
 from functions import *
 
@@ -66,7 +66,8 @@ else:
 
 fulfillment_units_processed = []
 rules_processing = []
-failed_rules = []
+failed_rules = {}
+
 thread_complete = []
 
 
@@ -86,16 +87,29 @@ def init_driver():
     return driver
 
 def iterate(sequence, driver, fulfillment_unit_df, thread_id):
+    x = 0
     while True:
         with threading.Lock():
 
+            fulfillment_unit_length = 0
+            current_x = 0
+            fulfillment_unit_length = len(fulfillment_unit_df)
             if sequence == "Error Checking":
-                current_x = failed_rules[x][0]
-                fulfillment_unit_length = len(failed_rules)
+                keys = list(failed_rules.keys())
+                fulfillment_unit_length = len(keys)
+                print(failed_rules)
+                print(fulfillment_unit_df)
+                
+         
+                if x in keys:
+                    current_x = keys[x]
+                else:
+                    continue
+
 
             else:
                 current_x = x
-                fulfillment_unit_length = len(fulfillment_unit_df)
+                
             
             if x + 1 > fulfillment_unit_length:
                 break
@@ -110,24 +124,31 @@ def iterate(sequence, driver, fulfillment_unit_df, thread_id):
 
 
                 rules_df, locations_list = navigate_to_rules_tab_get_lists(driver, current_x)
-                if sequence == "Error Checking":
-                    rule_count = len(failed_rules[x][1])
+                # if sequence == "Error Checking":
+                #     rule_count = len(failed_rules[current_x][1])
 
-                else:
-                    rule_count = len(rules_df)
+                # else:
+                rule_count = len(rules_df)
                 y = 0
                 # failover = False
                 while y < rule_count:
 
                     try:
                         if sequence == "Error Checking":
-                            current_y = failed_rules[x][1][y]
-                        ## testing
-                        elif sequence == "Main Sequence" and thread_id == 0 and x in (2,3) and y in (2,3):
-                            if current_x in failed_rules:
-                                failed_rules[x][1].append(current_y)
+
+                            if y in failed_rules[current_x][y]:
+                                 current_y = failed_rules[current_x][y]
+
                             else:
-                                failed_rules[x].append([current_y])
+                                continue
+
+
+                        ## testing
+                        # elif sequence == "Main Sequence" and thread_id == 0 and x in (2,3) and y in (2,3):
+                        #     if current_x in failed_rules:
+                        #         failed_rules[x][1].append(current_y)
+                        #     else:
+                        #         failed_rules[x].append([current_y])
                         else:
                             current_y = y
                         # if failover == True:
@@ -284,12 +305,12 @@ def iterate(sequence, driver, fulfillment_unit_df, thread_id):
                     except Exception as e:
                         print(f"Thread-{thread_id} error processing rule {rule_name}: {e}.  Restarting")
                         if current_x in failed_rules:
-                            failed_rules[x][1].append(current_y)
+                            failed_rules[current_x].append(current_y)
                         else:
-                            failed_rules[x].append([current_y])
+                            failed_rules[current_x] = [current_y]
                         
 
-                
+                        worker_thread(thread_id, "", sequence)
                 fulfillment_units_processed.append(fulfillment_unit)
 
 
@@ -298,8 +319,12 @@ def iterate(sequence, driver, fulfillment_unit_df, thread_id):
                 #     break
             
             except Exception as e:
+                # if current_x in failed_rules:
+                #     failed_rules[x][1].append(current_y)
+                # else:
+                #     failed_rules[x].append([current_y])
                 print(f"Thread-{thread_id} error processing fulfillment unit {fulfillment_unit}: {e}")
-            x += 1
+        x += 1
 
         # if len(failed_rules) > 0 and len(failed_rules) < len(failed_rules_processed):
         #     ## process with retry
@@ -338,10 +363,12 @@ def worker_thread(thread_id, threads, sequence):
     # print(type(fulfillment_unit_length))
 
     ## create slight offset so threads don't trip over each other
+    if thread_id == 1:
+        time.sleep(5)
     if thread_id == 2:
-        time.sleep(2)
+        time.sleep(10)
     if thread_id == 3:
-        time.sleep(3)
+        time.sleep(15)
  
     if sequence == "Main Sequence":
         iterate("Main Sequence", driver, fulfillment_unit_df, thread_id)
@@ -368,7 +395,8 @@ def main():
 
     for t in threads:
         t.join()
-    worker_thread(N + 1, threads, "Error Checking")
+    if len(failed_rules) > 0:
+        worker_thread(N + 1, threads, "Error Checking")
     merge_excel_files(OUTPUT_DIR, OUTPUT_FILE)
     print("All threads complete.")
 

@@ -307,7 +307,7 @@ def merge_excel_files(output_dir, output_file):
             print(df)
 
            
-            #df = df.sort_values(by=['Fulfillment Unit Number', 'Rule Number'])
+            df = df.sort_values(by=['Fulfillment Unit Number', 'Rule Number'])
             all_data.append(df)
         except Exception as e:
             print(f"⚠️ Failed to read {file_path}: {e}")
