@@ -4,9 +4,9 @@
 
 ## Install and Run
 - Once downloaded, install requirements from within directory
-  - python3 -m pip install -r requirments.txt
+  - `python3 -m pip install -r requirments.txt`
   - OR
-  - python pip install -r requirements.txt
+  - `python pip install -r requirements.txt`
 
   
 ## Input
@@ -48,7 +48,7 @@
 - create an Alma internal user with the role Fulfillment Adminstrator for your instituion, with password
 - enter the above Alma user Primary ID, password, and your institution URL in the secrets_local.py file
 - run
-  - python3 getLoanRules.py
+  - `python3 getLoanRules.py`
     - note that you'll need to close the GDPT cookie rules as soon as Selenium authenticates in Alma. The rest will run autonomously
   - let script run through all the loan rule
 
