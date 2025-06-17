@@ -54,5 +54,7 @@
 
 
 ## Output
-- rules for each fulfillment unit with associated parameters, TOUs, and policies will aggregate
+- rules for each fulfillment unit with associated parameters, TOUs, and policies will all be projected on the same line
+- parameters are separated out with separate columns for conditions so you can more easily analyze them
+- the rules are displayed by fulfillment unit order, and then by rule order within the fulfillment unit.  Rule order is significant since they cascade
 

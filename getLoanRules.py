@@ -47,8 +47,8 @@ if not os.path.isdir(oDir) or not os.path.exists(oDir):
 # driver = webdriver.Chrome(service=service)
 
 
-OUTPUT_FILE = "Bulk_Checkout_Request_Results.xlsx"
-FORMATTED_OUTPUT_FILE = "Bulk_Checkout_Request_Results - Highlighted.xlsx"
+OUTPUT_FILE = "Loan Rules.xlsx"
+FORMATTED_OUTPUT_FILE = "Loan Rules Export - Highlighted.xlsx"
 OUTPUT_DIR = "Output"
 YELLOW = '\033[33m'
 RESET = '\033[0m'
