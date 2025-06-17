@@ -28,15 +28,7 @@ sys.path.append(os.path.relpath('scripts/'))
 from functions import *
 
 
-if (
-    " " in secrets_local.alma_base_url
-    or " " in secrets_local.username
-    or " " in secrets_local.password
-):
-    print(
-        "Please set your admin account credentials and Alma URL in the secrets_local.py file"
-    )
-    sys.exit(1)
+
 
 # iterate through fulfillment full_units
 oDir = "./Output"
@@ -52,9 +44,33 @@ FORMATTED_OUTPUT_FILE = "Loan Rules Export - Highlighted.xlsx"
 OUTPUT_DIR = "Output"
 YELLOW = '\033[33m'
 RESET = '\033[0m'
-n = input(f"{YELLOW}Please close all Chrome browsers and processes before continuing, since this program uses multithreading to expedite the process of retrieving loan rules.\n\nPress any key to continue, once you have closed Chrome.\n\nThis program also uses multithreading to increase speed since drilling through fulfillment configuration windows takes a while.  But the number of threads that is best matched to your local environment is based on how reliable and fast your internet is.  Please choose one of the options below:\n\n\t1 (1 thread: Slow internet)\n\t2 (2 threads: Faster internet)\n\t3 (3 threads: Fastest internet)\n\n\tChoice: {RESET}")
+n = input(f"{YELLOW}Please close all Chrome browsers and processes before continuing, since this program uses multithreading to expedite the process of retrieving loan rules.\n\nPress any key to continue, once you have closed Chrome.\n\nThis program also uses multithreading to increase speed since drilling through fulfillment configuration windows takes a while.  But the number of threads that is best matched to your local environment is based on how reliable and fast your internet is.  Please choose one of the options below:\n\n\t1 (1 thread: Slow internet)\n\t2 (2 threads: Faster internet)\n\t3 (3 threads: Fastest internet)\n\n\tChoice:")
 
 
+instance = ""
+env = input(f"Run against (1) Sandbox or (2) Production? Enter 1 or 2: {RESET}").strip()
+if env == "1":
+    
+    alma_base_url = secrets_local.alma_base_url_sandbox
+    instance = "sandbox"
+elif env == "2":
+    alma_base_url = secrets_local.alma_base_url_prod
+    instance = "prod"
+else:
+    print("Invalid selection. Exiting.")
+    exit(1)
+
+if (
+    " " in secrets_local.alma_base_url
+    or " " in secrets_local.username
+    or " " in secrets_local.password
+):
+    print(
+        "Please set your admin account credentials and Alma URL in the secrets_local.py file"
+    )
+    sys.exit(1)
+
+n = int(n)
 n = int(n)
 
 if n in (1,2,3):
@@ -119,7 +135,7 @@ def iterate(sequence, driver, fulfillment_unit_df, thread_id):
 
             # Fulfillment unit initial actions
             try:
-                navigate_to_fulfillment_units(driver, secrets_local.alma_base_url)
+                navigate_to_fulfillment_units(driver, alma_base_url)
                 fulfillment_unit = safe_find_element_text(driver, By.XPATH, f"//table/tbody/tr[{current_x+1}]/td[2]/a")
 
 
@@ -334,7 +350,7 @@ def worker_thread(thread_id, threads, sequence):
     # buffer = []
     # current_fulfillment_unit = None
     
-    driver.get(secrets_local.alma_base_url)
+    driver.get(alma_base_url)
     time.sleep(10)
     element = login(driver, secrets_local.username, secrets_local.password)
     time.sleep(20)
@@ -353,7 +369,7 @@ def worker_thread(thread_id, threads, sequence):
 
     
    
-    fulfillment_unit_df = navigate_to_fulfillment_units(driver, secrets_local.alma_base_url)
+    fulfillment_unit_df = navigate_to_fulfillment_units(driver, alma_base_url)
     x = 0
 
     

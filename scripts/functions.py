@@ -314,7 +314,8 @@ def merge_excel_files(output_dir, output_file):
 
     if all_data:
         final_df = pd.concat(all_data, ignore_index=True)
-
+        final_df = final_df.sort_values(by=["Fulfillment Unit Number", "Rule Number"])
+        final_df = final_df.drop_duplicates(subset=["Fulfillment Unit Number", "Rule Number"])
         if os.path.exists(output_file):
             os.remove(output_file)
 
