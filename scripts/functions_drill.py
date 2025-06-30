@@ -91,6 +91,61 @@ def get_table_html_with_retry(driver, by, value, table, retries=3):
 
 
 
+    # Canonical policy key orders
+    LOAN_POLICY_KEYS = [
+        "Due Date",
+        "Lost Item Replacement Fee",
+        "Lost Item Replacement Fee Refund Ratio",
+        "Maximum Fine",
+        "Overdue Fine",
+        "Recalled Overdue Fine",
+        "Grace Period",
+        "Is Renewable",
+        "Maximum Renewal Period",
+        "Closed Library Due Date Management",
+        "Cancelled Recall Due Date",
+        "Overdue Notification Fine Type 1",
+        "Overdue Notification Fine Type 2",
+        "Overdue Notification Fine Type 3",
+        "Overdue Notification Fine Type 4",
+        "Overdue Notification Fine Type 5",
+        "Block When Overdue",
+        "Is Loanable",
+        "Is Recallable",
+        "Requested Item Due Date",
+        "Recall Period",
+        "Renew Fee",
+        "Lost Item Fine",
+        "Maximum Period For Overdue Block",
+        "Reloan Limit",
+        "Time frame when loan renewal is allowed",
+    ]
+
+    REQUEST_POLICY_KEYS = [
+        "Requested Item Due Date",
+        "Recall Period",
+        "Renew Fee",
+        "Lost Item Fine",
+        "Maximum Period For Overdue Block",
+        "Reloan Limit",
+        "Time frame when loan renewal is allowed",
+        "Is Requestable for Digital Resource Sharing",
+        "Is Requestable",
+        "Pickup Locations",
+        "Hold Shelf Period",
+        "Is Digitizeable",
+        "Is Requestable for Physical Resource Sharing",
+        "Request Priority",
+        "On Shelf Request Policy",
+        "Personal delivery",
+        "Personal delivery fee",
+        "Automatically convert to resource sharing",
+        "Digitization Fee per Digitization",
+        "Digitization Fee per Page",
+    ]
+
+
+
     # --- Extract Loan Policy Data ---
         # loan_tab = safe_find_element(driver, By.ID, "A_NAV_LINK_touTypeloan_span")
 
@@ -129,7 +184,11 @@ def get_table_html_with_retry(driver, by, value, table, retries=3):
             policy_df = policy_df.set_index('Policy Type').T
             policy_series = policy_df.squeeze(axis=0)
 
-            policy_dict = policy_series.to_dict()
+            # Normalize policy_dict to canonical order
+            policy_dict_raw = policy_series.to_dict()
+            policy_dict = {key: policy_dict_raw.get(key, "") for key in LOAN_POLICY_KEYS}            
+
+
 
             #print("Parsed DataFrame:")
             #print(policy_df)
@@ -194,7 +253,9 @@ def get_table_html_with_retry(driver, by, value, table, retries=3):
             policy_df = policy_df.set_index('Policy Type').T
             policy_series = policy_df.squeeze(axis=0)
 
-            policy_dict = policy_series.to_dict()
+            policy_dict_raw = policy_series.to_dict()
+            policy_dict = {key: policy_dict_raw.get(key, "") for key in REQUEST_POLICY_KEYS}
+
 
 
             # Check for required columns

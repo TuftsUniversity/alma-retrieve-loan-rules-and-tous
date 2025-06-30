@@ -194,12 +194,12 @@ def worker_thread(thread_id, combined_df):
             row_dict.update(request_result_policy_dict)
 
             # Reorder the policy columns using the column order
-            ordered_loan_dict = {col: row_dict.get(col, "") for col in order_of_loan_policy_columns}
-            ordered_request_dict = {col: row_dict.get(col, "") for col in order_of_request_policy_columns}
+            # ordered_loan_dict = {col: row_dict.get(col, "") for col in order_of_loan_policy_columns}
+            # ordered_request_dict = {col: row_dict.get(col, "") for col in order_of_request_policy_columns}
 
-            # Re-apply reordered keys to the final row dict
-            row_dict.update(ordered_loan_dict)
-            row_dict.update(ordered_request_dict)
+            # # Re-apply reordered keys to the final row dict
+            # row_dict.update(ordered_loan_dict)
+            # row_dict.update(ordered_request_dict)
 
             buffer.append(row_dict)
 
