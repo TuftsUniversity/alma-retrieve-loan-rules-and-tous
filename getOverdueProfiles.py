@@ -39,8 +39,8 @@ if not os.path.isdir(oDir) or not os.path.exists(oDir):
 # driver = webdriver.Chrome(service=service)
 
 
-OUTPUT_FILE = "Loan Rules.xlsx"
-FORMATTED_OUTPUT_FILE = "Loan Rules Export - Highlighted.xlsx"
+OUTPUT_FILE = "Overdue and Lost Profiles.xlsx"
+FORMATTED_OUTPUT_FILE = "Overdue and Lost Profiles - Highlighted.xlsx"
 OUTPUT_DIR = "Output"
 YELLOW = '\033[33m'
 RESET = '\033[0m'
@@ -80,9 +80,9 @@ else:
     print("\n\nInvalid choice.   Try again")
     sys.exit()
 
-fulfillment_units_processed = []
-rules_processing = []
-failed_rules = {}
+profile_pages_processed = []
+profiles_processing = []
+failed_profiles = {}
 
 thread_complete = []
 
@@ -102,19 +102,18 @@ def init_driver():
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
-def iterate(sequence, driver, fulfillment_unit_df, thread_id):
+def iterate(sequence, driver, profile_pages_elements, thread_id):
     x = 0
     while True:
         with threading.Lock():
 
-            fulfillment_unit_length = 0
-            current_x = 0
-            fulfillment_unit_length = len(fulfillment_unit_df)
+            profile_number_of_pages = len(profile_pages_elements)
+
             if sequence == "Error Checking":
-                keys = list(failed_rules.keys())
-                fulfillment_unit_length = len(keys)
-                print(failed_rules)
-                print(fulfillment_unit_df)
+                keys = list(failed_profiles.keys())
+                profile_number_of_pages = len(keys)
+                print(failed_profiles)
+                print(profile_pages_elements)
                 
          
                 if x in keys:
@@ -127,33 +126,41 @@ def iterate(sequence, driver, fulfillment_unit_df, thread_id):
                 current_x = x
                 
             
-            if x + 1 > fulfillment_unit_length:
+            if x + 1 > profile_number_of_pages:
                 break
             
-            fulfillment_unit = fulfillment_unit_df.loc[current_x, "sortable"]
-            
+
+
+            for li in profile_pages_elements:
+                try:
+                    # Look for the <a> inside <li> and match text to page number
+                    link = safe_find_element_within_element(li, By.TAG_NAME, "a")
+                    if link.text.strip() == str(current_x):
+                        link.click()
+                        break
+                except:
+                    continue  # Some <li> elements may not have <a> (e.g., input-only)
+                       
 
             # Fulfillment unit initial actions
             try:
-                navigate_to_fulfillment_units(driver, alma_base_url)
-                fulfillment_unit = safe_find_element_text(driver, By.XPATH, f"//table/tbody/tr[{current_x+1}]/td[2]/a")
-
-
-                rules_df, locations_list = navigate_to_rules_tab_get_lists(driver, current_x)
+               
+                profiles_df = pd.read_html(driver.page_source)[0]
+                #rules_df, locations_list = navigate_to_rules_tab_get_lists(driver, current_x)
                 # if sequence == "Error Checking":
                 #     rule_count = len(failed_rules[current_x][1])
 
                 # else:
-                rule_count = len(rules_df)
+                profile_count_on_page = len(profiles_df)
                 y = 0
                 # failover = False
-                while y < rule_count:
+                while y < profile_count_on_page:
 
                     try:
                         if sequence == "Error Checking":
 
-                            if y in failed_rules[current_x][y]:
-                                 current_y = failed_rules[current_x][y]
+                            if y in failed_profiles[current_x][y]:
+                                 current_y = failed_profiles[current_x][y]
 
                             else:
                                 continue
@@ -178,119 +185,155 @@ def iterate(sequence, driver, fulfillment_unit_df, thread_id):
                         # if y > 3:
                         #     break
                         if sequence == "Main Sequence":
-                            if ((current_x, current_y)) in rules_processing:
+                            if ((current_x, current_y)) in profiles_processing:
                                 y += 1
                                 continue
 
-                        rules_processing.append((current_x, current_y))
+                        profiles_processing.append((current_x, current_y))
                         # Process rule
                         # try:
 
-                        rule_name = rules_df.loc[current_y, "Rule Name"]
-                        print(f"Thread-{thread_id} processing rule {rule_name} in fulfillment unit {fulfillment_unit}")
+                        profile_name = profiles_df.loc[current_y, "Name"]
+                        print(f"Thread-{thread_id} processing rule {profile_name} on overdue and lost profiles page {current_x}")
                         # --- Initialize DataFrame and Series for rule row ---
-                        rule_df = pd.DataFrame(
+                        profile_df = pd.DataFrame(
                             columns=[
-                                "Fullfilment Unit",
-                                "Possible Locations",
-                                "Enabled",
-                                "Rule Name",
-                                "Unnamed: 0",
-                                "Unnamed: 4",
-                                "Output",
+                                "Profile Type",
+                                "Days After Due Date",
+                                "Loan Status",
+                                "User Group",
+                                "Library",
+                                "Locations",
+                                "Item Policy",
+                                "Material Type"
                             ]
                         )
 
                         s = pd.Series(
                             [None, None, None, None, None, None, None],
                             index=[
-                                "Fullfilment Unit",
-                                "Possible Locations",
-                                "Enabled",
-                                "Rule Name",
-                                "Unnamed: 0",
-                                "Unnamed: 4",
-                                "Output",
+                                "Profile Type",
+                                "Days After Due Date",
+                                "Loan Status",
+                                "User Group",
+                                "Library",
+                                "Locations",
+                                "Item Policy",
+                                "Material Type"
                             ],
                         )
-                        rule_df = pd.concat([rule_df, pd.DataFrame([s])], ignore_index=True)
-                        rule_df['Item Policy Operator'] = None
+                        profile_df = pd.concat([profile_df, pd.DataFrame([s])], ignore_index=True)
+                        profile_df['Name'] = None
+                        profile_df['Profile Type'] = None
+                        profile_df['Days After Due Date'] = None
+                        profile_df['Loan Status'] = None
+                        profile_df['User Group'] = None
+                        profile_df['Library'] = None
+                        profile_df['Locations'] = None
+                        profile_df['Item Policy'] = None
+                        profile_df['Material Type'] = None
 
-                        rule_df['Item Policy Value'] = None
+                        profile_type_element = safe_find_element(driver, By.ID, "pageBeanlostLoanProfileprofileType")
+                        profile_type = profile_type_element.get_attribute("title")
                         
-                        rule_df['User Group Operator'] = None
-                        rule_df['User Group Value'] = None
-                        rule_df['Location Operator'] = None
-                        rule_df['Location Value'] = None
+                        days_after_due_date_element = safe_find_element(driver, By.ID, "pageBeanlostLoanProfiledaysAfterDueDate")
+
+                        days_afer_due_date = days_after_due_date_element.get_attribute("title")
+
+                        statuses = get_tag_values(driver, "pageBeanprocessStatusDummyUXPInputContainer")
+
+                        user_groups = get_tag_values(driver, "pageBeanuserGroupListDummyUXPInputContainer")
+
+                        library_element = safe_find_element(driver, By.ID, "pageBeanlostLoanProfilelibraryStr")
+                        library = library_element.get_atttribute("value")
+
+                        locations = get_tag_values(driver, "pageBeanlocationListDummyUXP")
+
+                        item_policies = get_tag_values(driver, "pageBeanitemPolicyListDummyUXPInputContainer")
+
+                        material_types = get_tag_values(driver, "pageBeanmaterialTypeListDummyUXP")
+
+                        profile_df.loc[0, "Name"] = profile_name
+                        profile_df.loc[0, 'Profile Type'] = profile_type
+
+                        profile_df.loc[0, 'Days After Due Date'] = days_afer_due_date
+                        
+                        profile_df.loc[0, 'Loan Status'] = statuses
+                        profile_df.loc[0, 'User Group'] = user_groups
+                        profile_df.loc[0, 'Library'] = library
+                        profile_df.loc[0, 'Locations'] = locations
+                        profile_df.loc[0, 'Item Policy'] = item_policies
+                        profile_df.loc[0, 'Material Type'] = material_types
+
                         # --- Get Rule Name and Output ---
-                        rule_name = rules_df.loc[current_y, "Rule Name"]
-                        output = rules_df.loc[current_y, "Output"]
+                        #rule_name = rules_df.loc[current_y, "Rule Name"]
+                        #output = rules_df.loc[current_y, "Output"]
                         #print("Rule name: " + str(rule_name))
 
-                        # --- Wait for rule row to become visible ---
-                        safe_find_element(driver, By.XPATH, f"//table/tbody/tr[{current_y + 1}]")
+                        # # --- Wait for rule row to become visible ---
+                        # safe_find_element(driver, By.XPATH, f"//table/tbody/tr[{current_y + 1}]")
 
-                        # --- Populate row values ---
-                        fulfillment_unit = fulfillment_unit.replace("\\", "-")
-                        rule_df.loc[0, "Fulfillment Unit"] = fulfillment_unit
-                        rule_df.loc[0, "Fulfillment Unit Number"] = current_x
-                        rule_df.loc[0, "Possible Locations"] = ",".join(locations_list)
-                        rule_df.loc[0, "Rule Name"] = rule_name
-                        rule_df.loc[0, "Rule Number"] = current_y
-                        rule_df.loc[0, "Output"] = output
+                        # # --- Populate row values ---
+                        # fulfillment_unit = fulfillment_unit.replace("\\", "-")
+                        # rule_df.loc[0, "Fulfillment Unit"] = fulfillment_unit
+                        # rule_df.loc[0, "Fulfillment Unit Number"] = current_x
+                        # rule_df.loc[0, "Possible Locations"] = ",".join(locations_list)
+                        # rule_df.loc[0, "Rule Name"] = rule_name
+                        # rule_df.loc[0, "Rule Number"] = current_y
+                        # rule_df.loc[0, "Output"] = output
 
-                        # --- Get "Enabled" Status ---
-                        enabled_value = get_enabled_value(driver, current_y)
-                        rule_df.loc[0, "Enabled"] = enabled_value
+                        # # --- Get "Enabled" Status ---
+                        # enabled_value = get_enabled_value(driver, current_y)
+                        # rule_df.loc[0, "Enabled"] = enabled_value
 
-                        # --- Navigate to Loan Rule Details ---
-                        navigate_to_loan_rule(driver, current_y)
-                        # time.sleep(2)  # Short wait to let the page load (optional)
+                        # # --- Navigate to Loan Rule Details ---
+                        # navigate_to_loan_rule(driver, current_y)
+                        # # time.sleep(2)  # Short wait to let the page load (optional)
 
                         # --- Get Parameter String ---
-                        parameter_list = get_parameter_list(driver)
+                        # parameter_list = get_parameter_list(driver)
 
                     
 
-                        for policy in parameter_list:
-                            if any("Item Policy" in key for key in policy):
-                                key = next(k for k in policy if "Item Policy" in k)
-                                operator, value = policy[key]
+                        # for policy in parameter_list:
+                        #     if any("Item Policy" in key for key in policy):
+                        #         key = next(k for k in policy if "Item Policy" in k)
+                        #         operator, value = policy[key]
 
-                                rule_df.loc[0, 'Item Policy Operator'] = operator
-                                rule_df.loc[0, 'Item Policy Value'] = value
-                                pd.options.display.max_rows = None
-                                pd.options.display.max_columns = None      
-                                # print(rule_df)
+                        #         rule_df.loc[0, 'Item Policy Operator'] = operator
+                        #         rule_df.loc[0, 'Item Policy Value'] = value
+                        #         pd.options.display.max_rows = None
+                        #         pd.options.display.max_columns = None      
+                        #         # print(rule_df)
 
-                            if any("User Group" in key for key in policy):
-                                key = next(k for k in policy if "User Group" in k)
-                                operator, value = policy[key]
+                        #     if any("User Group" in key for key in policy):
+                        #         key = next(k for k in policy if "User Group" in k)
+                        #         operator, value = policy[key]
 
-                                rule_df.loc[0, 'User Group Operator'] = operator
-                                rule_df.loc[0, 'User Group Value'] = value
-                                pd.options.display.max_columns = None      
-                                # print(rule_df)
-                            if any("Location" in key for key in policy):
-                                key = next(k for k in policy if "Location" in k)
-                                operator, value = policy[key]
+                        #         rule_df.loc[0, 'User Group Operator'] = operator
+                        #         rule_df.loc[0, 'User Group Value'] = value
+                        #         pd.options.display.max_columns = None      
+                        #         # print(rule_df)
+                        #     if any("Location" in key for key in policy):
+                        #         key = next(k for k in policy if "Location" in k)
+                        #         operator, value = policy[key]
 
-                                rule_df.loc[0, 'Location Operator'] = operator
-                                rule_df.loc[0, 'Location Value'] = value
-                                pd.options.display.max_columns = None      
+                        #         rule_df.loc[0, 'Location Operator'] = operator
+                        #         rule_df.loc[0, 'Location Value'] = value
+                        #         pd.options.display.max_columns = None      
                             
 
                         
-                        # --- Navigate to Terms of Use ---
-                        navigate_to_tou(driver)
-                        # time.sleep(2)
+                        # # --- Navigate to Terms of Use ---
+                        # navigate_to_tou(driver)
+                        # # time.sleep(2)
 
-                        # --- Parse TOU into DataFrame ---
-                        tou_series = get_tou_as_series(driver)
-                        rule_df = rule_df.join(tou_series.to_frame(rule_df.index[0]).T)
+                        # # --- Parse TOU into DataFrame ---
+                        # tou_series = get_tou_as_series(driver)
+                        # rule_df = rule_df.join(tou_series.to_frame(rule_df.index[0]).T)
 
                         # --- Remove duplicates ---
-                        rule_df = rule_df.drop_duplicates(subset=["Rule Name"])
+                        profile_df = profile_df.drop_duplicates(subset=["Name"])
 
                         # --- Append to master ---
                         # if y == 0:
@@ -309,25 +352,25 @@ def iterate(sequence, driver, fulfillment_unit_df, thread_id):
                     
 
 
-                        rule_df = rule_df.applymap(escape_equals)
+                        # rule_df = rule_df.applymap(escape_equals)
                         
                     
                         #if len(buffer) >= BUFFER_WRITE_INTERVAL:
-                        write_buffer_to_excel(rule_df, thread_id, OUTPUT_DIR)
+                        write_buffer_to_excel(profile_df, thread_id, OUTPUT_DIR)
                         
 
                         y += 1
                         
                     except Exception as e:
                         print(f"Thread-{thread_id} error processing rule {rule_name}: {e}.  Restarting")
-                        if current_x in failed_rules:
-                            failed_rules[current_x].append(current_y)
+                        if current_x in failed_profiles:
+                            failed_profiles[current_x].append(current_y)
                         else:
-                            failed_rules[current_x] = [current_y]
+                            failed_profiles[current_x] = [current_y]
                         
 
                         worker_thread(thread_id, "", sequence)
-                fulfillment_units_processed.append(fulfillment_unit)
+                profile_pages_processed.append(current_x)
 
 
             
@@ -369,7 +412,7 @@ def worker_thread(thread_id, threads, sequence):
 
     
    
-    fulfillment_unit_df = navigate_to_fulfillment_units(driver, alma_base_url)
+    profiles_page_elements = navigate_to_overdue_profiles(driver, alma_base_url)
     x = 0
 
     
@@ -387,9 +430,9 @@ def worker_thread(thread_id, threads, sequence):
         time.sleep(15)
  
     if sequence == "Main Sequence":
-        iterate("Main Sequence", driver, fulfillment_unit_df, thread_id)
+        iterate("Main Sequence", driver, profiles_page_elements, thread_id)
     else:
-        iterate("Error Checking", driver, fulfillment_unit_df, thread_id)
+        iterate("Error Checking", driver, profiles_page_elements, thread_id)
 
     
 
@@ -411,10 +454,14 @@ def main():
 
     for t in threads:
         t.join()
-    if len(failed_rules) > 0:
+    if len(failed_profiles) > 0:
         worker_thread(N + 1, threads, "Error Checking")
+
     final_df = merge_excel_files(OUTPUT_DIR, OUTPUT_FILE)
-    final_df.to_excel(OUTPUT_DIR + "/" + OUTPUT_FILE)
+    final_df.to_excel(instance + " - " + OUTPUT_FILE, index=False)
+
+    highlight_unique_values(output_file, output_file)
+
     print("All threads complete.")
 
 if __name__ == "__main__":

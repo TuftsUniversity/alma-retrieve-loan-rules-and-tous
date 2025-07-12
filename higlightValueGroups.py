@@ -40,6 +40,7 @@ def highlight_unique_values(file_path, output_path):
     print(f"File saved with highlighted column H: {output_path}")
 
 # Usage
-input_file = "Bulk_Checkout_Request_Results.xlsx"  # Path to your input file
-output_file = "Bulk_Checkout_Request_Results - Formatted.xlsx"  # Path to save the output file
+instance = input("is this on prod or sandbox?   (For file name): \n\tsandbox\n\tprod\n\t:")
+input_file = instance + " - " + "Bulk_Loan_Request_Results.xlsx"  # Path to your input file
+output_file = instance + " - " + "Bulk_Loan_Request_Results - Formatted.xlsx"  # Path to save the output file
 highlight_unique_values(input_file, output_file)

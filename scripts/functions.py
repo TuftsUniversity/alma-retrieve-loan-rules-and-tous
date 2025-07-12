@@ -47,7 +47,21 @@ def safe_find_element(driver, by, value, retries=3):
     print(f"Failed to locate element: {value} after {retries} retries.")
     return None
 
-
+def safe_find_element_within_element(parent_element, by, value, retries=3, timeout=10):
+    """Safely find an element within a parent element, with retries for staleness."""
+    for attempt in range(retries):
+        try:
+            return WebDriverWait(parent_element, timeout).until(
+                lambda el: el.find_element(by, value)
+            )
+        except StaleElementReferenceException:
+            print(f"Retry {attempt + 1} of {retries}: Stale parent or child element, retrying...")
+            time.sleep(2)
+        except TimeoutException:
+            print(f"Retry {attempt + 1} of {retries}: Timeout while locating element '{value}' inside parent.")
+            time.sleep(2)
+    print(f"Failed to locate nested element '{value}' after {retries} retries.")
+    return None
 def safe_find_element_text(driver, by, value, retries=3):
     """Find element with retries for StaleElementReferenceException"""
     for attempt in range(retries):
@@ -155,6 +169,32 @@ def navigate_to_fulfillment_units(driver, url, retries=3, wait_time=10):
         except:
             continue
 
+def navigate_to_overdue_profiles(driver, url, retries=3, wait_time=10):
+    time.sleep(2)
+    for attempt in range(retries):
+        try:
+
+            driver.get(
+                url
+                #+ "/ng/page;u=%2Fful%2Faction%2FpageAction.do%3FxmlFileName%3DfulfillmentUnits.fulfillment_units_list.xml&almaConfiguration%3Dtrue&pageViewMode%3DEdit&operation%3DLOAD&pageBean.orgUnitCode%3D3851&pageBean.currentUrl%3DxmlFileName%253DfulfillmentUnits.fulfillment_units_list.xml%2526almaConfiguration%253Dtrue%2526pageViewMode%253DEdit%2526operation%253DLOAD%2526pageBean.orgUnitCode%253D3851%2526resetPaginationContext%253Dtrue%2526showBackButton%253Dfalse&pageBean.navigationBackUrl%3D..%252Faction%252Fhome.do&resetPaginationContext%3Dtrue&showBackButton%3Dfalse&pageBean.ngBack%3Dtrue;ng=true"
+                + "/ng/page;u=%2Fful%2Faction%2FpageAction.do%3FxmlFileName%3Dloan.lost_loan_profile_list.xml&almaConfiguration%3Dtrue&pageViewMode%3DEdit&operation%3DLOAD&pageBean.currentUrl%3DxmlFileName%253Dloan.lost_loan_profile_list.xml%2526almaConfiguration%253Dtrue%2526pageViewMode%253DEdit%2526operation%253DLOAD%2526resetPaginationContext%253Dtrue%2526showBackButton%253Dfalse&pageBean.navigationBackUrl%3D..%252Faction%252Fhome.do&resetPaginationContext%3Dtrue&showBackButton%3Dfalse&pageBean.ngBack%3Dtrue;ng=true"
+            )
+
+            time.sleep(6)
+
+            ul = safe_find_element(driver, By.ID, "PAGING_UL_down")
+            # Find all <li> children
+            li_elements = safe_find_element_within_element(ul, By.TAG_NAME, "li")
+
+            # Optionally exclude elements like 'jumpToPageContainer' and 'next' buttons
+            page_li_elements = [li for li in li_elements if li.get_attribute("class") not in ["jumpToPageContainer", "page-item "]]
+
+
+            
+            return page_li_elements
+        except:
+            continue
+
 def get_fulfillment_unit_count(driver):
     time.sleep(3)
     count = len(driver.find_elements(By.XPATH, "//table/tbody/tr"))
@@ -239,7 +279,15 @@ def get_parameter_list(driver):
     
     except:
         return []
-
+def get_tag_values(driver, div_id):
+    """Return all the values under <span class='tagValue'> inside the specified div."""
+    try:
+        container = driver.find_element(By.ID, div_id)
+        tag_spans = container.find_elements(By.CLASS_NAME, "tagValue")
+        return [span.text.strip() for span in tag_spans if span.text.strip()]
+    except Exception as e:
+        print(f"Error getting tag values from div '{div_id}': {e}")
+        return []
 def navigate_to_tou(driver):
     click_element_with_retry(driver, By.XPATH, '//*[@id="uiconfiguration_rule_detailsview_tou"]')
 
@@ -319,7 +367,47 @@ def merge_excel_files(output_dir, output_file):
         if os.path.exists(output_file):
             os.remove(output_file)
 
-        final_df.to_excel(output_file, index=False)
+        #final_df.to_excel(output_file, index=False)
+
+        return final_df
         print(f"📁 Merged {len(file_paths)} files. Final output: {output_file} ({os.path.getsize(output_file)/1024:.2f} KB)")
     else:
         print("❌ No valid data found to merge.")
+
+def highlight_unique_values(file_path, output_path):
+    # Load the spreadsheet into a pandas DataFrame
+    df = pd.read_excel(file_path, engine='openpyxl')
+
+    # Ensure column G exists
+    if len(df.columns) < 8:  # Column G is the 8th column (0-indexed)
+        raise ValueError("Column G does not exist in the spreadsheet.")
+
+    df = df.sort_values(by=["Item Policies"])
+    # Get unique values in column G
+    unique_values = df.iloc[:, 7].dropna().unique()  # Column H (0-indexed)
+    color_map = {}
+
+    # Generate unique colors for each unique value in Column H
+    for i, value in enumerate(unique_values):
+        # Generate color codes in ARGB format (8-character hex string)
+        red = (100 + (i * 50) % 256) % 256
+        green = (150 + (i * 30) % 256) % 256
+        blue = (200 + (i * 70) % 256) % 256
+        color_map[value] = f"FF{red:02X}{green:02X}{blue:02X}"
+
+    # Load workbook and active sheet
+    workbook = load_workbook(file_path)
+    sheet = workbook.active
+
+    # Iterate through column H and apply fill
+    for row in range(2, sheet.max_row + 1):  # Skip header (row 1)
+        cell = sheet[f'H{row}']
+        value = cell.value
+        if value in color_map:
+            fill = PatternFill(start_color=color_map[value], end_color=color_map[value], fill_type="solid")
+            cell.fill = fill
+
+    # Save the updated workbook
+
+    workbook.save(file_path)
+    print(f"File saves: {file_path}")

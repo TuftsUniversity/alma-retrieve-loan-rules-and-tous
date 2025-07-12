@@ -193,6 +193,8 @@ def worker_thread(thread_id, combined_df):
             row_dict.update(loan_result_policy_dict)
             row_dict.update(request_result_policy_dict)
 
+            # Remove keys containing "Unnamed" (case-insensitive)
+            row_dict =  {k: v for k, v in row_dict.items() if "unnamed" not in k.lower()}
             # Reorder the policy columns using the column order
             # ordered_loan_dict = {col: row_dict.get(col, "") for col in order_of_loan_policy_columns}
             # ordered_request_dict = {col: row_dict.get(col, "") for col in order_of_request_policy_columns}
@@ -252,8 +254,8 @@ def main():
 
     final_df = merge_excel_files(start_thread_id + N, OUTPUT_DIR)
     final_df.to_excel(instance + " - " + OUTPUT_FILE, index=False)
-
-    highlight_unique_values(OUTPUT_FILE, instance + " - " + OUTPUT_FILE)
+    output_file = instance + " - " + OUTPUT_FILE
+    highlight_unique_values(output_file, instance + " - " + output_file)
     print("All threads complete.")
 
 if __name__ == "__main__":
